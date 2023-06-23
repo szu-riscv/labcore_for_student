@@ -1,0 +1,22 @@
+.bloop/
+.bsp/
+.idea/
+.metals/
+.vscode/
+out/
+project/
+target/
+build/
+# chiseltest out
+test_run_dir/
+
+docs/
+
+*.vcd
+*.v
+*.json
+*.fir
+*.f
+*.f3nQIP
+*.log
+*.bin
