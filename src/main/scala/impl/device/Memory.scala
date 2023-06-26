@@ -9,19 +9,51 @@ import utils._
 import sim.device._
 
 // This Module is represent for a memory IP core of your FPGA platform(e.g. xilinx)
-class RealMemory extends BlackBox {
+class RealMemory(memByte: Long, beatBytes: Int) extends BlackBox {
     val cfg   = implConfig
-    val clka  = IO(Input(Clock()))
-    val wea   = IO(Input(Bool()))
-    val addra = IO(Input(UInt(cfg.memAddrWidth.W)))
-    val dina  = IO(Input(UInt(cfg.memDataWidth.W)))
-    val douta = IO(Output(UInt(cfg.memDataWidth.W)))
+    val io = IO(new Bundle{
+        val clka  = Input(Clock())
+        val wea   = Input(Bool())
+        val addra = Input(UInt(cfg.memAddrWidth.W))
+        val dina  = Input(UInt(cfg.memDataWidth.W))
+        val douta = Output(UInt(cfg.memDataWidth.W))
 
-    val clkb  = IO(Input(Clock()))
-    val web   = IO(Input(Bool()))
-    val addrb = IO(Input(UInt(cfg.memAddrWidth.W)))
-    val dinb  = IO(Input(UInt(cfg.memDataWidth.W)))
-    val doutb = IO(Output(UInt(cfg.memDataWidth.W)))
+        val clkb  = Input(Clock())
+        val web   = Input(Bool())
+        val addrb = Input(UInt(cfg.memAddrWidth.W))
+        val dinb  = Input(UInt(cfg.memDataWidth.W))
+        val doutb = Output(UInt(cfg.memDataWidth.W))
+    })
+}
+
+// Only for simulation
+class RealMemory_1(memByte: Long, beatBytes: Int) extends Module { 
+    val cfg   = implConfig
+    val io = IO(new Bundle{
+        // Port A for DMem (rw)
+        val clka  = Input(Clock())
+        val wea   = Input(Bool())
+        val addra = Input(UInt(cfg.memAddrWidth.W))
+        val dina  = Input(UInt(cfg.memDataWidth.W))
+        val douta = Output(UInt(cfg.memDataWidth.W))
+
+        // Port B for IMem (r)
+        val clkb  = Input(Clock())
+        val web   = Input(Bool())
+        val addrb = Input(UInt(cfg.memAddrWidth.W))
+        val dinb  = Input(UInt(cfg.memDataWidth.W))
+        val doutb = Output(UInt(cfg.memDataWidth.W))
+    })
+
+    val mem = RegInit(VecInit(Seq.fill((memByte / beatBytes).toInt)(0.U((beatBytes * 8).W))))
+
+    when(io.wea) {
+        mem(io.addra) := io.dina
+    }
+
+    // SyncReadMem
+    io.douta := RegNext(mem(io.addra))
+    io.doutb := RegNext(mem(io.addrb))
 }
 
 class MainMemory(
@@ -42,20 +74,23 @@ class MainMemory(
 
     val rIdx_1 = index(raddr2)
 
-    val mems = (0 until split).map { _ => Module(new RealMemory()) }
+    val mems = (0 until split).map { _ => Module(new RealMemory_1(1024, beatBytes)) }
     mems.zipWithIndex map { case (mem, i) =>
-        mem.clka  := clock
-        mem.clkb  := clock
-        mem.addra := (rIdx << log2Ceil(split)) + i.U // addra == raddr == waddr
-        mem.addrb := (rIdx_1 << log2Ceil(split)) + i.U
-        mem.dina  := wdata((i + 1) * 64 - 1, i * 64)
-        mem.dinb  := DontCare
-        mem.wea   := wstrb((i + 1) * 8 - 1, i * 8) & wen
-        mem.web   := Fill(beatBytes, 0.U(1.W))
+        mem.io.clka  := clock
+        mem.io.clkb  := clock
+        mem.io.addra := (rIdx << log2Ceil(split)) + i.U // addra == raddr == waddr
+        mem.io.addrb := (rIdx_1 << log2Ceil(split)) + i.U
+        mem.io.dina  := wdata((i + 1) * 64 - 1, i * 64)
+        mem.io.dinb  := DontCare
+        mem.io.wea   := wstrb((i + 1) * 8 - 1, i * 8) & wen
+        mem.io.web   := Fill(beatBytes, 0.U(1.W))
     }
-    val rXLEN_0 = mems.map { mem => mem.douta }
-    val rXLEN_1 = mems.map { mem => mem.doutb }
+    val rXLEN_0 = mems.map { mem => mem.io.douta }
+    val rXLEN_1 = mems.map { mem => mem.io.doutb }
     rdata  := Cat(rXLEN_0.reverse)
     rdata2 := Cat(rXLEN_1.reverse)
+
+    io.in.dmem.resp.valid := RegNext(io.in.dmem.req.valid)
+    io.in.imem.resp.valid := RegNext(io.in.imem.req.valid)
 
 }

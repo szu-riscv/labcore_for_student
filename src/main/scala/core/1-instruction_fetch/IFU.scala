@@ -44,7 +44,7 @@ class IFU(isPipeLine: Boolean = false) extends Module {
     // request to memory for fetching instruction
     io.imem.req.valid      := !reset.asBool && io.out.ready
     io.imem.req.bits.addr  := pc // pc is the address of instruction
-    io.imem.req.bits.size  := "b10".U
+    io.imem.req.bits.size  := "b10".U // 2^2 = 4 byte == 32-bit
     io.imem.req.bits.cmd   := CpuLinkCmd.inst_req
     io.imem.req.bits.wdata := DontCare
     io.imem.req.bits.strb  := DontCare

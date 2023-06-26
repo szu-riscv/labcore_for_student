@@ -1,28 +1,27 @@
 # sim
 BUILD_DIR = ./build
 SIM_TOP = SimTop
-MillTarget = sim.GenVerilog
-MillModule = SZU_RISCV
+TOP = Top
+SIM_GEN_RTL = sim.GenVerilog
+IMPL_GEN_RTL = impl.GenVerilog
+MILL_MODULE = SZU_RISCV
 
 SIM_TOP_V = $(BUILD_DIR)/$(SIM_TOP).v
+TOP_V = ${BUILD_DIR}/${TOP}.v
 
 
 COLOR_RED   = \033[1;31m
 COLOR_GREEN = \033[1;32m
 COLOR_NONE  = \033[0m
 
-# scala files
-SCALA_SRC_DIR = ./src/main/scala/soc ./src/main/scala/simulator ./src/main/scala/bus ./src/main/scala/utils
-SCALA_FILE = $(shell find $(SCALA_SRC_DIR) -name '*.scala')
-
 # outstream
 TIMELOG = $(BUILD_DIR)/time.log
 
 
-$(SIM_TOP_V): $(SCALA_FILE)
+$(SIM_TOP_V):
 	mkdir -p $(@D)
 	@echo "\n[mill] Generating Verilog files..." > $(TIMELOG)
-	mill -i ${MillModule}.runMain $(MillTarget) -td $(@D) --emission-options disableRegisterRandomization
+	mill -i ${MILL_MODULE}.runMain $(SIM_GEN_RTL) -td $(@D) --emission-options disableRegisterRandomization
 
 sim-verilog: $(SIM_TOP_V)
 default: sim-verilog
@@ -45,6 +44,14 @@ init:
 
 idea:
 	mill -i mill.scalalib.GenIdea/idea
+
+impl_rtl: ${TOP_V}
+
+${TOP_V}: ${SCALA_FILE}
+	mkdir -p $(@D)
+	@echo "\n[mill] Generating Verilog files..." > $(TIMELOG)
+	mill -i ${MILL_MODULE}.runMain $(IMPL_GEN_RTL) -td $(@D) --emission-options disableRegisterRandomization
+
 
 TEST_DIR ?= /home/lin/workspace/lab-test/tests/performance/coremark/build/labcore
 #TEST_DIR ?= /home/lin/workspace/lab-test/riscv-tests/isa/build/p/labcore

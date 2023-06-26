@@ -117,6 +117,14 @@ class MainMemory(
 
     val rIdx_1 = index(raddr2)
 
+    /**  ________
+      * | 64-bit |  index: 0
+      * |________|
+      * | 64-bit |  index: 1
+      * |________|
+      * |  ....  |  index: ...
+      * |________|
+      */
     val mems = (0 until split).map { _ => Module(new RAMHelper_2r1w(bankByte)) }
     mems.zipWithIndex map { case (mem, i) =>
         mem.clk    := clock
