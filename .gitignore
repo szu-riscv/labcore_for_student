@@ -10,6 +10,14 @@ build/
 # chiseltest out
 test_run_dir/
 
+src/test/python/sim_build/
+src/test/python/__pycache__/
+src/test/python/Top_out/
+src/test/python/results.xml
+*.gtkw
+
+
+
 docs/
 
 *.vcd
