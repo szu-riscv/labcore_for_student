@@ -24,6 +24,7 @@ class SimTop extends Module {
     })
 
     require(FPGAPlatform == false, "SimTop is not prepare for FPGA implementation")
+    require(DiffTest == true, "If you want to simulate with difftest, please enable difftest. (DiffTest == true)")
 
     val soc = Module(new SoC())
     io.uart <> soc.io.uart.get
