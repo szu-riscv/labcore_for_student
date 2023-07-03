@@ -18,7 +18,7 @@ class UartDeserializer(from: Int = 8, to: Int = 64) extends Module {
 
     val multiple = to / from
     val counter = RegInit(0.U(log2Ceil(to/from).W))
-    val outputReg = RegInit(0.U(to.W)).asTypeOf(Vec(multiple, UInt(from.W)))
+    val outputReg = RegInit(VecInit(Seq.fill(multiple)(0.U(from.W))))
     val finish = io.input.fire && counter === (multiple - 1).U
 
     when(finish) {
@@ -27,12 +27,15 @@ class UartDeserializer(from: Int = 8, to: Int = 64) extends Module {
         counter := counter + 1.U
     }
     
-    when(io.input.fire) {
-        outputReg(counter) := io.input.bits
+    outputReg.zipWithIndex.foreach{
+        case (reg, i) => 
+            when(io.input.fire & counter === i.U) {
+                outputReg(i) := io.input.bits
+            }
     }
 
-    io.output.valid := finish
-    io.output.bits := outputReg.asUInt
+    io.output.valid := RegNext(finish)
+    io.output.bits := Cat(outputReg).asUInt
 }
 
 
@@ -45,7 +48,7 @@ class UartBoot extends Module {
     })
 
     val blockFire = WireInit(false.B) // receive one block of data from uart, here one block == 4byte == 64-bit of data
-    val blockData = RegInit(0.U(XLEN.W))
+    val blockData = WireInit(0.U(XLEN.W))
     val uartDes = Module(new UartDeserializer(8, XLEN))
     uartDes.io.input <> io.uartRxData
     blockFire := uartDes.io.output.fire
@@ -64,10 +67,13 @@ class UartBoot extends Module {
     val totalInitSize = RegInit(0.U(XLEN.W)) // size of the received uart data (bytes)
     
     val magicNum = RegInit(0.U(XLEN.W))
-    def MAGIC_NUM = "hdeed_beef".U(XLEN.W)
+    def MAGIC_NUM = "hdeed_beef_deed_beef".U(XLEN.W)
 
     io.mem <> DontCare
     io.startWrok := false.B
+
+    io.mem.req.valid := false.B
+    io.mem.req.bits <> DontCare
 
     when(bootState === recvMagicNum) {
         when(blockFire) {
@@ -78,36 +84,43 @@ class UartBoot extends Module {
         when(RegNext(blockFire)) {
             when(magicNum === MAGIC_NUM) {
                 bootState := recvInitSize
-            }.otherwise{ // unknown magic number
-                bootState := recvMagicNum
-                magicNum := 0.U
             }
         }
-    }.elsewhen(bootState === recvInitSize) {
+    }
+    
+    when(bootState === recvInitSize) {
         when(blockFire) {
             totalInitSize := blockData
             bootState := initMemPtr
         }
-    }.elsewhen(bootState === initMemPtr) {
+    }
+    
+    when(bootState === initMemPtr) {
         when(blockFire) {
             memAddr := blockData
             initMemAddr := blockData
             bootState := initMemData
         }
-    }.elsewhen(bootState === initMemData) {
-        io.mem.req.valid := blockFire
-        io.mem.req.bits.addr := memAddr
-        io.mem.req.bits.size := log2Ceil(XLEN / 8).U
-        io.mem.req.bits.cmd := CpuLinkCmd.store_req
-        io.mem.req.bits.wdata := blockData
-        io.mem.req.bits.strb := Fill(XLEN / 8, 1.U)
-        memAddr := memAddr + (XLEN / 8).U
+    }
+
+    when(bootState === initMemData) {
+        when(blockFire) {
+            io.mem.req.valid := blockFire & bootState === initMemData
+            io.mem.req.bits.addr := memAddr
+            io.mem.req.bits.size := log2Ceil(XLEN / 8).U
+            io.mem.req.bits.cmd := CpuLinkCmd.store_req
+            io.mem.req.bits.wdata := blockData
+            io.mem.req.bits.strb := Fill(XLEN / 8, 1.U)
+            memAddr := memAddr + (XLEN / 8).U
+        }
 
         // TODO: timeout ?
         when(memAddr - initMemAddr === totalInitSize) {
             bootState := startWork
         }
-    }.elsewhen(bootState === startWork) {
+    }
+    
+    when(bootState === startWork) {
 
         io.startWrok := true.B
     }

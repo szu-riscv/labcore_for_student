@@ -1,45 +1,55 @@
+import logging
+
 import cocotb
 from cocotb.clock import Clock
-from cocotb.triggers import FallingEdge, RisingEdge, Combine
+from cocotb.triggers import RisingEdge, Timer
+from cocotbext.uart import UartSource, UartSink
 
 
-async def dut_reset(dut, cycles = 1):
-    posedge = RisingEdge(dut.clock)
+class TestBench:
+    def __init__(self, dut):
+        self._clock = Clock(dut.clock, 20, "ns") # Create a 50MHz clock
+        self.log = logging.getLogger("cocotb.tb")
+        self.log.setLevel(logging.DEBUG)
+
+        self.source = UartSource(dut.rxd, baud=115200)
+        self.sink = UartSink(dut.txd, baud=115200)
+    
+async def dut_reset(dut, time_ns):
     dut.reset.value = 1
-    for _ in range(0, cycles):
-        await posedge
+    await Timer(time_ns, units="ns")
     dut.reset.value = 0
-    await posedge
-
-async def dut_posedge(dut, cycles = 1):
-    # ! takes more time than barely use "posedge = RisingEdge(dut.clock)"
-    posedge = RisingEdge(dut.clock)
-    for _ in range(0, cycles):
-        await posedge
 
 async def main(dut):
+    tb = TestBench(dut)
+    
+    cocotb.start_soon(tb._clock.start()) # Start the clock
+    
+    reset_thread = cocotb.start_soon(dut_reset(dut, 500))
+    
     posedge = RisingEdge(dut.clock)
+    await posedge
+    
+    await Timer(100, 'ns')
+    tb.log.info("start reset!")
+    await reset_thread
+    tb.log.info("reset done!")
 
-    clock = Clock(dut.clock, 2, units="us")  # Create a 10us period clock on port clk
-    cocotb.start_soon(clock.start())  # Start the clock
-    await posedge  # Wait for at least one clock cycle
+    assert dut.reset.value == 0, f"reset failed: dut.reset.value == {dut.reset.value} =/= 0"
     
-    await dut_reset(dut, 10)
-    await dut_posedge(dut, 10)
+    await tb.source.write([0xDE, 0xED, 0xBE, 0xEF, 0xDE, 0xED, 0xBE, 0xEF]) # Magic number
+    await tb.source.wait()
+
+    await tb.source.write([0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x08]) # Init size
+    await tb.source.wait()
     
-    for i in range(10):
-        dut.txd.value = 1
-        await posedge
+    await tb.source.write([0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]) # Init mem addr
+    await tb.source.wait()
     
-    for i in range(5):
-        dut.txd.value = 0
-        await posedge
-        
-    dut.txd.value = 1
+    await tb.source.write([0xA0, 0xB0, 0xC0, 0xD0, 0xE0, 0xF0, 0x00, 0x01]) # Init data
+    await tb.source.wait()
     
-    for i in range(30):
-        dut.txd.value = 1
-        await posedge
+    await Timer(1, units='us')
 
 
 @cocotb.test()
