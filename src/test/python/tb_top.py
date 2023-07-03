@@ -12,18 +12,19 @@ class TestBench:
         self.log = logging.getLogger("cocotb.tb")
         self.log.setLevel(logging.DEBUG)
 
-        self.source = UartSource(dut.rxd, baud=115200)
-        self.sink = UartSink(dut.txd, baud=115200)
+        self.source = UartSource(dut.rxd, baud=115200*10) # times 10 is only for simulation
+        self.sink = UartSink(dut.txd, baud=115200*10)
     
 async def dut_reset(dut, time_ns):
     dut.reset.value = 1
     await Timer(time_ns, units="ns")
+    # await RisingEdge(dut.clock)
     dut.reset.value = 0
 
 async def main(dut):
     tb = TestBench(dut)
     
-    cocotb.start_soon(tb._clock.start()) # Start the clock
+    # cocotb.start_soon(tb._clock.start()) # Start the clock
     
     reset_thread = cocotb.start_soon(dut_reset(dut, 500))
     
@@ -34,19 +35,17 @@ async def main(dut):
     tb.log.info("start reset!")
     await reset_thread
     tb.log.info("reset done!")
-
+    await posedge
+    
     assert dut.reset.value == 0, f"reset failed: dut.reset.value == {dut.reset.value} =/= 0"
     
     await tb.source.write([0xDE, 0xED, 0xBE, 0xEF, 0xDE, 0xED, 0xBE, 0xEF]) # Magic number
-    await tb.source.wait()
-
-    await tb.source.write([0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x08]) # Init size
-    await tb.source.wait()
-    
+    await tb.source.write([0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10]) # Init size
     await tb.source.write([0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]) # Init mem addr
     await tb.source.wait()
     
-    await tb.source.write([0xA0, 0xB0, 0xC0, 0xD0, 0xE0, 0xF0, 0x00, 0x01]) # Init data
+    await tb.source.write([0xA0, 0xB0, 0xC0, 0xD0, 0xE0, 0xF0, 0x00, 0x01]) # Init data 1
+    await tb.source.write([0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF, 0xFD, 0x02]) # Init data 2
     await tb.source.wait()
     
     await Timer(1, units='us')

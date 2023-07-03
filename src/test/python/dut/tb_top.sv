@@ -1,30 +1,25 @@
 
 module tb_top(
     input  wire rxd,
-    output wire txd,
-    input  wire reset
+    output wire txd
+    // input  wire reset
 );
 
     reg           clock;
-    // reg           reset;
+    reg           reset;
 
-    // initial begin
-        // clock = 0;
-        // reset = 0;
-    // end
+    initial begin
+        clock = 0;
+        reset = 0;
+    end
+
+    always #10 clock = ~clock;
 
     reg [63:0] cycles;
+    initial cycles = 0;
     always@(posedge clock) begin
         cycles <= cycles + 1;
     end
-
-
-    // wire rxd;
-    // reg txd;
-
-    // initial begin
-    //     txd = 1;
-    // end
 
 
     Top top(
@@ -37,7 +32,7 @@ module tb_top(
     initial begin
         if ($test$plusargs("dump_enable")) begin
             $dumpfile("dump.vcd");
-            $dumpvars(0, top);
+            $dumpvars(0, tb_top);
         end
     end
 

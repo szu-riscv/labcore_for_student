@@ -2,10 +2,12 @@ package core
 
 import chisel3._
 import chisel3.util._
+import chisel3.util.experimental.BoringUtils
 
 import bus._
 import utils._
 import config.Config._
+
 
 class FetchInstrInfo extends Bundle {
     val instr     = UInt(32.W)
@@ -41,8 +43,11 @@ class IFU(isPipeLine: Boolean = false) extends Module {
         }
     }
 
+    val startWork = WireInit(true.B)
+    BoringUtils.addSink(startWork, "startWork")
+
     // request to memory for fetching instruction
-    io.imem.req.valid      := !reset.asBool && io.out.ready
+    io.imem.req.valid      := !reset.asBool && io.out.ready && startWork
     io.imem.req.bits.addr  := pc // pc is the address of instruction
     io.imem.req.bits.size  := "b10".U // 2^2 = 4 byte == 32-bit
     io.imem.req.bits.cmd   := CpuLinkCmd.inst_req

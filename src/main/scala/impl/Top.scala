@@ -17,7 +17,7 @@ case class ImplementationConfig(
     rxfifoEntries: Int = 64,
     txfifoEntries: Int = 64,
     frequency: Int = 50 * 1000000,   // 50 * 1000000, // 50MHz
-    uartBaudRate: Int = 115200, // 115200    // Uart baud rate configuration
+    uartBaudRate: Int = 115200*10, // 115200    // Uart baud rate configuration
 )
 
 class Top extends Module {

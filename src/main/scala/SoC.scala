@@ -1,6 +1,9 @@
 package soc
 
 import chisel3._
+import chisel3.util._
+import chisel3.util.experimental.BoringUtils
+
 import bus._
 import core._
 import impl._
@@ -21,6 +24,10 @@ class SoC extends Module {
         val boot = Module(new UartBoot())
         val memArb = Module(new Arbiter(chiselTypeOf(mem.io.in.dmem.req.bits), 2))
 
+        when(~RegNext(boot.io.startWrok) && boot.io.startWrok) {
+            printf("Start work!\n")
+        }
+        BoringUtils.addSource(boot.io.startWrok, "startWork")
 
         boot.io.mem.resp <> DontCare
         boot.io.uartRxData <> uart.uartRxData
