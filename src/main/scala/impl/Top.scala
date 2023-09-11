@@ -20,16 +20,39 @@ case class ImplementationConfig(
     uartBaudRate: Int = 115200*10, // 115200    // Uart baud rate configuration
 )
 
-class Top extends Module {
+class Top extends RawModule {
     val io = IO(new Bundle{
+        val clock = Input(Clock())
+        val rst_n = Input(Bool())
         val uart = new UartPhyIO
+        val statusLED = Output(Bool())
     })
 
     require(FPGAPlatform == true, "Top is prepare for FPGA implementation not for simulation")
 
-    val soc = Module(new SoC())
+    val soc = withClockAndReset(io.clock, !io.rst_n) { Module(new SoC()) }
+    val startWork = soc.io.startWork
     io.uart <> soc.io.uart.get
+    
+    withClockAndReset(io.clock, ~io.rst_n) {
+        // Status LED
+        val led = RegInit(false.B)
+        val ledBlinkCount = RegInit(0.U(64.W))
+        ledBlinkCount := ledBlinkCount + 1.U
+        io.statusLED := led
+        when(~startWork) {
+            when(ledBlinkCount >= (50 * 1000000).U) { // 1s
+                led := ~led
+                ledBlinkCount := 0.U
+            }
+        }.otherwise{
+            when(ledBlinkCount >= (25 * 1000000).U) { // 0.5s
+                led := ~led
+                ledBlinkCount := 0.U
+            }
+        }
 
+    }
 }
 
 object GenVerilog extends App {

@@ -13,6 +13,7 @@ import chisel3.util.Arbiter
 class SoC extends Module {
     val io = IO(new Bundle() {
         val uart = if (FPGAPlatform) Some(new impl.device.UartPhyIO) else Some(new difftest.UARTIO)
+        val startWork = Output(Bool())
     })
 
     val core = Module(new Core(hasPipeLine = true))
@@ -28,6 +29,7 @@ class SoC extends Module {
             printf("Start work!\n")
         }
         BoringUtils.addSource(boot.io.startWrok, "startWork")
+        io.startWork := boot.io.startWrok
 
         boot.io.mem.resp <> DontCare
         boot.io.uartRxData <> uart.uartRxData
@@ -52,6 +54,7 @@ class SoC extends Module {
         val xbar = Module(new CpuLinkCrossBar1toN(deviceAddrSpace))
         val uart = Module(new sim.device.UART())
         val mem  = Module(new sim.device.MainMemory(simConfig.memory_size, simConfig.beatBytes))
+        io.startWork := true.B
 
         xbar.io.in <> core.io.mem.dmem
 

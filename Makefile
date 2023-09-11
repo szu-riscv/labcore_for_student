@@ -51,7 +51,11 @@ ${TOP_V}: ${SCALA_FILE}
 	mkdir -p $(@D)
 	@echo "\n[mill] Generating Verilog files..." > $(TIMELOG)
 	mill -i ${MILL_MODULE}.runMain $(IMPL_GEN_RTL) -td $(@D) --emission-options disableRegisterRandomization
-
+	@( 	git log -1 | sed 's/^/\/\//g'; \
+		echo "----------------------------------------------" | sed 's/^/\/\//g'; \
+		git status | sed 's/^/\/\//g'; \
+		echo "----------------------------------------------" | sed 's/^/\/\//g'; \
+		cat $@) > temp.txt && mv temp.txt $@
 
 TEST_DIR ?= /home/lin/workspace/lab-test/tests/performance/coremark/build/labcore
 #TEST_DIR ?= /home/lin/workspace/lab-test/riscv-tests/isa/build/p/labcore

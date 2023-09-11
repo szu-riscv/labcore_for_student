@@ -74,7 +74,8 @@ class MainMemory(
 
     val rIdx_1 = index(raddr2)
 
-    val mems = (0 until split).map { _ => Module(new RealMemory_1(1024, beatBytes)) }
+    // val mems = (0 until split).map { _ => Module(new RealMemory_1(1024, beatBytes)) }
+    val mems = (0 until split).map { _ => Module(new RealMemory(1024, beatBytes)) }
     mems.zipWithIndex map { case (mem, i) =>
         mem.io.clka  := clock
         mem.io.clkb  := clock
