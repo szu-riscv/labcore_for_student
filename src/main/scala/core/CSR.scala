@@ -181,21 +181,15 @@ class CSRtoDecodeBundle extends Bundle {
 class CSR extends Module with CSRConst {
     val io = IO(new Bundle() {
         val wb = Flipped(ValidIO(new WBUtoCSRBundle))
-        // val intr = Input(new ClintIO)
         val read = new CSRtoDecodeBundle()
-        // val toMMU = if (hasMMU) Output(new CSRtoMMUBundle) else null
         val redirect = Output(new RedirectIO)
     })
 
     val (valid, cmd, pc, wdata) = (io.wb.valid, io.wb.bits.csr_cmd, io.wb.bits.pc, io.wb.bits.wdata)
-
-    /** Mode: Just M S U mode
-      */
+    
     val priviledgeMode = RegInit(Priv.M) // default in M mode
 
-    /** M-mode CSR
-      */
-//  val mstatus = RegInit("ha00001800".U.asTypeOf(new MstatusBundle))
+    // M-mode CSR
     val mstatus = RegInit(UInt(XLEN.W), "ha00001800".U)
     val mtvec   = RegInit(UInt(XLEN.W), 0.U)
     val mcause  = RegInit(UInt(XLEN.W), 0.U)
@@ -212,22 +206,10 @@ class CSR extends Module with CSRConst {
     val marchid   = RegInit(UInt(XLEN.W), 0.U) // Architecture ID
     val mimpid    = RegInit(UInt(XLEN.W), 0.U) // Implementation ID
     val mhartid   = RegInit(UInt(XLEN.W), 0.U) // Hardwwware thread ID
-//  val mconfigptr = RegInit(UInt(XLEN.W), 0.U) //Pointer to configuration data structure
-//  val minstret = RegInit(UInt(XLEN.W), 0.U)
 
-    /** S-mode CSR TODO:
-      */
-
-    /** CSR Map
-      */
+    
+    // CSR Map
     val mstatusWmask = "h0000_0000_0000_ffff".U(64.W)
-
-//  def mstatusUpdateSideEffect(mstatus: UInt): UInt = {
-//    val mstatusOld = WireInit(mstatus.asTypeOf(new MstatusBundle))
-//    val mstatusNew = Cat(mstatusOld.fs === "b11".U, mstatus(XLEN - 2, 0))
-//    mstatusNew
-//  }
-//
     val csr_mapping = Map(
         MaskedRegMap(CSRAddr.mstatus, mstatus.asUInt, mstatusWmask),
         MaskedRegMap(CSRAddr.mtvec, mtvec),
@@ -237,15 +219,11 @@ class CSR extends Module with CSRConst {
         MaskedRegMap(CSRAddr.mideleg, mideleg)
     )
 
-    val waddr = io.wb.bits.instr(31, 20)
-//  val wen = io.wb.bits.csr_cmd === WBCtrl.CSR_W
-    val wen = io.wb.valid
-
+    
+    val (waddr, wen)   = (io.wb.bits.instr(31, 20), io.wb.valid)
     val (raddr, rdata) = (io.read.csr_addr, io.read.csr_data)
 
     MaskedRegMap.generate(csr_mapping, raddr, rdata, waddr, wen, wdata)
-
-//  MaskedRegMap.generate(csr_mapping, Mux(wen,waddr,raddr), rdata, wen, wdata)
 
     when(GTimer() > 0.U && EnableDebug.B) {
         printf("\ntime: %d -----CSR------\n", GTimer())
@@ -258,15 +236,11 @@ class CSR extends Module with CSRConst {
         printf("medeleg = 0x%x\n", medeleg)
     }
 
-//  io.read := DontCare
-    /** Privileged Instruction mret sret ecall
-      */
-//  val system_instr = cmd === WBCtrl.CSR_PRIV
-    val inst = io.wb.bits.instr
 
+    // Privileged Instruction mret sret ecall
+    val inst    = io.wb.bits.instr
     val isMret  = valid && (inst === Priviledged.MRET)
     val isEcall = valid && (inst === Priviledged.ECALL)
-
     val illegalMret = valid && isMret && priviledgeMode < Priv.M
 
     // mret
@@ -283,60 +257,53 @@ class CSR extends Module with CSRConst {
         retTarget := mepc(VAddrBits - 1, 0)
     }
 
-    /** Exception And Interrupt
-      */
+
     // Exception
     val exceptionVec = WireInit(io.wb.bits.exceptions)
-
     exceptionVec(ExceptionCode.EcallU) := isEcall && priviledgeMode === Priv.U
     exceptionVec(ExceptionCode.EcallS) := isEcall && priviledgeMode === Priv.S
     exceptionVec(ExceptionCode.EcallM) := isEcall && priviledgeMode === Priv.M
 
     val hasException = valid && exceptionVec.asUInt.orR
-    val exceptionNo =
-        ExceptionCode.Priority.foldRight(0.U)((i: Int, sum: UInt) => Mux(exceptionVec(i), i.U, sum))
+    val exceptionNo  = ExceptionCode.Priority.foldRight(0.U)((i: Int, sum: UInt) => Mux(exceptionVec(i), i.U, sum))
+
 
     // TODO: Interrupt
-    // io.intr := DontCare
     val hasIntr            = WireInit(false.B)
     val intrNo             = WireInit(0.U)
     val hasIntrOrException = hasException || hasIntr
     val cause              = Mux(hasIntr, intrNo, exceptionNo)
-//  val epc = Mux(hasIntr, pc, pc + 4.U)
-    val epc = Mux(hasIntr, pc + 4.U, pc)
+    val epc                = Mux(hasIntr, pc + 4.U, pc)
+
 
     when(hasIntrOrException) {
-
-        val mstatusNew = WireInit(mstatusValue)
+        val mstatusNew   = WireInit(mstatusValue)
         priviledgeMode  := Priv.M
         mstatusNew.mpp  := priviledgeMode
         mstatusNew.mpie := mstatusNew.mie
         mstatusNew.mie  := false.B
         mepc            := epc
-
-        mstatus := mstatusNew.asUInt
-        mcause  := cause
+        mstatus         := mstatusNew.asUInt
+        mcause          := cause
     }
 
-    /** Redirect
-      */
+
+    // Redirect
     val mtvecStruct = WireInit(mtvec.asTypeOf(new MtvecBundle))
     val trapTarget = Mux(
         mtvecStruct.mode === 0.U,
         Cat(mtvecStruct.base, Fill(2, 0.U)),
         Cat(mtvecStruct.base, Fill(2, 0.U)) + mcause << 2.U
     )
-//  io.redirect.valid := hasIntrOrException || isXret
-//  io.redirect.target := Mux(hasIntrOrException, trapTarget, retTarget)
     io.redirect.valid  := isMret || hasIntrOrException
     io.redirect.target := Mux(hasIntrOrException, trapTarget, retTarget)
 
-    /** MMU Ctrl Signals
-      */
+
+    // MMU Ctrl Signals
     // io.toMMU := DontCare  // TODO:
 
-    /** difftest csr
-      */
+
+    // Difftest csr
     if (DiffTest) {
         val difftest_csr = Module(new DifftestCSRState)
         difftest_csr.suggestName("difftest_csr")

@@ -30,6 +30,7 @@ emu: $(SIM_TOP_V)
 	$(MAKE) -C ./difftest emu SIM_TOP=$(SIM_TOP) DESIGN_DIR=$(NOOP_HOME) EMU_TRACE=1
 
 emu-run:
+	echo "NOOP_HOME is $(NOOP_HOME)"
 	$(MAKE) -C ./difftest emu-run SIM_TOP=$(SIM_TOP) DESIGN_DIR=$(NOOP_HOME) EMU_TRACE=0
 
 emu-clean:
@@ -57,10 +58,7 @@ ${TOP_V}: ${SCALA_FILE}
 		echo "----------------------------------------------" | sed 's/^/\/\//g'; \
 		cat $@) > temp.txt && mv temp.txt $@
 
-TEST_DIR ?= /home/lin/workspace/lab-test/tests/performance/coremark/build/labcore
-#TEST_DIR ?= /home/lin/workspace/lab-test/riscv-tests/isa/build/p/labcore
-#TEST_DIR ?= /home/lin/workspace/lab-test/tests/futest/cputest/build/labcore
-#TEST_DIR ?= /home/lin/workspace/lab-test/tests/performance/dhrystone/build/labcore
+TEST_DIR ?= .
 test_file := $(wildcard $(test_dir)/*.bin)
 
 RESULT = .result

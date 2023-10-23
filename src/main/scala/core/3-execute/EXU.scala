@@ -6,8 +6,7 @@ import chisel3.util._
 import utils.GTimer
 import config.Config.EnableDebug
 
-/** Execute Unit
-  */
+// Execute Unit
 class EXU extends Module {
     val io = IO(new Bundle() {
         val in  = Flipped(DecoupledIO(new DecodeCtrlSignal))
@@ -50,9 +49,13 @@ class EXU extends Module {
         (isALU && alu.io.out.valid) || (isJBU && jbu.io.out.valid) || (isCSR && csr.io.out.valid)
 
     // TODO: add more fu such as MDU(mul/div unit)、CSR...
-
-    val exe_result =
-        Mux(isALU, alu.io.out.bits.data, Mux(isCSR, csr.toreg.data.bits, jbu.io.out.bits.data))
+    val exe_result = Mux(isALU, 
+                            alu.io.out.bits.data, 
+                            Mux(isCSR, 
+                                csr.toreg.data.bits, 
+                                jbu.io.out.bits.data
+                            )
+                        )
 
     val time = GTimer()
     when(time < 0.U && EnableDebug.B) {

@@ -72,35 +72,32 @@ class ALU extends FunctionUnit(hasRedirect = false) {
             (func === ALUOpType.ADDIW) -> (src1 + src2).asUInt(),
             (func === ALUOpType.SUBW) -> (src1 - src2).asUInt(),
             (func === ALUOpType.OR) -> (src1 | src2).asUInt(),
-            (func === ALUOpType.XOR) -> (src1 ^ src2).asUInt(), // FIXME
+            (func === ALUOpType.XOR) -> (src1 ^ src2).asUInt(),
             (func === ALUOpType.MUL) -> (src1 * src2).asUInt(),
             (func === ALUOpType.MULW) -> (src1 * src2).asUInt(),
             (func === ALUOpType.DIV) -> (src1 / src2).asUInt(),
             (func === ALUOpType.DIVW) -> (src1 / src2).asUInt(),
             (func === ALUOpType.DIVU) -> (src1 / src2).asUInt(),
-            (func === ALUOpType.DIVUW && src2(31, 0) =/= 0.U) -> (src1(31, 0).asUInt / src2(
-                31,
-                0
-            ).asUInt).asUInt, // todo
+            (func === ALUOpType.DIVUW && src2(31, 0) =/= 0.U) -> (src1(31, 0).asUInt / src2(31, 0).asUInt).asUInt, 
             (func === ALUOpType.DIVUW && src2(31, 0) === 0.U) -> ("hffff_ffff_ffff_ffff".U),
             (func === ALUOpType.REM) -> (src1(31, 0) % src2(31, 0)).asUInt(),
             (func === ALUOpType.REMW) -> (src1(31, 0) % src2(31, 0)).asUInt(),
             (func === ALUOpType.REMU) -> (src1 % src2).asUInt(),
             (func === ALUOpType.REMUW) -> (src1(31, 0) % src2(31, 0)).asUInt(),
-            (func === ALUOpType.SLLW) -> (src1 << src2(4, 0)).asUInt(), // TODO
+            (func === ALUOpType.SLLW) -> (src1 << src2(4, 0)).asUInt(),
             (func === ALUOpType.SLLIW) -> (src1 << src2(5, 0)).asUInt(),
-            (func === ALUOpType.SLLI) -> (src1 << src2(5, 0)).asUInt(), // TODO
-            (func === ALUOpType.SLLW) -> (src1 << src2(5, 0)).asUInt(), // FIXME
-            (func === ALUOpType.SLL) -> (src1 << src2(5, 0)).asUInt(),  // FIXME
+            (func === ALUOpType.SLLI) -> (src1 << src2(5, 0)).asUInt(),
+            (func === ALUOpType.SLLW) -> (src1 << src2(5, 0)).asUInt(),
+            (func === ALUOpType.SLL) -> (src1 << src2(5, 0)).asUInt(), 
 
-            (func === ALUOpType.SRAIW) -> (src1(31, 0).asSInt >> src2(5, 0)).asUInt(), // FIXME
-            (func === ALUOpType.SRAI) -> (src1.asSInt >> src2(5, 0)).asUInt(),         // FIXME
-            (func === ALUOpType.SRL) -> (src1 >> src2(5, 0)).asUInt(),                 // FIXME
-            (func === ALUOpType.SRA) -> (src1.asSInt >> src2(5, 0)).asUInt(),          // FIXME
+            (func === ALUOpType.SRAIW) -> (src1(31, 0).asSInt >> src2(5, 0)).asUInt(),
+            (func === ALUOpType.SRAI) -> (src1.asSInt >> src2(5, 0)).asUInt(),        
+            (func === ALUOpType.SRL) -> (src1 >> src2(5, 0)).asUInt(),                
+            (func === ALUOpType.SRA) -> (src1.asSInt >> src2(5, 0)).asUInt(),         
 
-            (func === ALUOpType.SRLIW) -> (src1(31, 0) >> src2(5, 0)).asUInt(),       // FIXME
-            (func === ALUOpType.SRAW) -> (src1(31, 0).asSInt >> src2(4, 0)).asUInt(), // FIXME
-            (func === ALUOpType.SRLW) -> (src1(31, 0) >> src2(4, 0)).asUInt()         // FIXME
+            (func === ALUOpType.SRLIW) -> (src1(31, 0) >> src2(5, 0)).asUInt(),      
+            (func === ALUOpType.SRAW) -> (src1(31, 0).asSInt >> src2(4, 0)).asUInt(),
+            (func === ALUOpType.SRLW) -> (src1(31, 0) >> src2(4, 0)).asUInt()        
 
         )
     )

@@ -7,7 +7,7 @@ import difftest._
 import soc._
 import bus._
 import device._
-// import config._
+
 import config.Config._
 
 case class SimulatorConfig(

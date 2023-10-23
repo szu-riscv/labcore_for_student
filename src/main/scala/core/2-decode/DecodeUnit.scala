@@ -21,7 +21,6 @@ object InstrType {
     def apply() = UInt(width.W)
 
     def genImm(instr: UInt, instr_type: UInt): UInt = {
-        // assert (sel.getWidth == 3)
         // imm
         val imm_i = instr(31, 20)
         val imm_s = Cat(instr(31, 25), instr(11, 7))
@@ -147,7 +146,7 @@ trait RISCVConstants {
     val CSR_ADDR_LSB = 20
 }
 
-class ScoreBoard0 extends Module {
+class ScoreBoard extends Module {
     val io = IO(new Bundle() {
         val set   = Input(UInt(32.W))
         val clear = Input(UInt(32.W))
@@ -163,7 +162,7 @@ class ScoreBoard0 extends Module {
     }
 
     when(GTimer() < 0.U && GTimer() > 0.U) {
-        printf("\ntime: %d-------SCOREBOARD0-------\n", GTimer())
+        printf("\ntime: %d-------ScoreBoard-------\n", GTimer())
         printf("regBusy = 0x%x\n", regBusy)
         printf("io.set = 0x%x\n", io.set)
         printf("io.clear = 0x%x\n", io.clear)
@@ -196,17 +195,17 @@ class DecodeUnit extends Module with RISCVConstants {
     val mem_op     = ctrlsignals(Decode.idx_mem_op)
     val rf_wen     = ctrlsignals(Decode.idx_rf_wen)
 
-//  val isreg1 = op1_sel === SrcType.reg || (instr_type === InstrType.z)
     val isreg1 = op1_sel === SrcType.reg
     val isreg2 =
-        (op2_sel === SrcType.reg) || (instr_type === InstrType.s && op2_sel === SrcType.imm) ||
-            (instr_type === InstrType.b && op2_sel === SrcType.imm)
+                (op2_sel === SrcType.reg) || 
+                (instr_type === InstrType.s && op2_sel === SrcType.imm) ||
+                (instr_type === InstrType.b && op2_sel === SrcType.imm)
     // src reg
     val rs1_addr = Mux(isreg1 && io.in.valid, instr(RS1_MSB, RS1_LSB), 0.U) // rs1
     val rs2_addr = Mux(isreg2 && io.in.valid, instr(RS2_MSB, RS2_LSB), 0.U) // rs2
     val wb_addr  = instr(RD_MSB, RD_LSB)                                    // rd
 
-    val sb = Module(new ScoreBoard0)
+    val sb = Module(new ScoreBoard)
     def sb_mask(idx: UInt) = (1.U(32.W) << idx)(32 - 1, 0)
     val wbClearMask = Mux(io.wbByPass.valid, sb_mask(io.wbByPass.bits.wb_addr), 0.U(32.W))
     val setMask     = Mux(io.out.fire() && io.in.valid && rf_wen === WBCtrl.Y, sb_mask(wb_addr), 0.U)
@@ -313,7 +312,6 @@ class DecodeUnit extends Module with RISCVConstants {
         )
     ).asUInt
 
-//  printf("op1 = 0x%x,op2 = 0x%x, op1 + op2 = 0x%x\n",op1_data,op2_data,op1_data + op2_data)
     // CSR Read
     io.fromCSR.csr_addr := io.in.bits.instr(31, 20)
     val csr_data = io.fromCSR.csr_data

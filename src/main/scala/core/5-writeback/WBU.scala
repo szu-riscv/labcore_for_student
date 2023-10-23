@@ -13,8 +13,7 @@ class WBtoSB extends Bundle {
     val data    = UInt(64.W)
 }
 
-/** Write Back Unit
-  */
+// Write Back Unit
 class WBU(isPipeLine: Boolean = false) extends Module {
     val io = IO(new Bundle() {
         val in        = Flipped(DecoupledIO(new WriteBackIO))

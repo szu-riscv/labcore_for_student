@@ -21,13 +21,11 @@ class Core(hasPipeLine: Boolean = false) extends Module {
     val mem = Module(new AccessMem)
     val wbu = Module(new WBU(isPipeLine = hasPipeLine))
 
-    val gpr = Module(new Regfile(debug_port = DiffTest))
-    val csr = Module(new CSR)
+    val gpr = Module(new Regfile(debug_port = DiffTest)) // gpr: General Purpose Register
+    val csr = Module(new CSR) // csr: Control and Status Register
 
     // connect these stages
-
     if (!hasPipeLine) {
-        // TODO: note now we have not add pipeline
         ifu.io.out <> dec.io.in
         dec.io.out <> exe.io.in
         exe.io.out <> mem.io.in
@@ -80,7 +78,6 @@ class Core(hasPipeLine: Boolean = false) extends Module {
     dec.io.fromCSR  <> csr.io.read
     csr.io.wb       <> wbu.io.toCSR
     csr.io.redirect <> wbu.io.csrRedirect
-    // csr.io.intr := DontCare
 
     // difftest debug
     if (DiffTest) {
