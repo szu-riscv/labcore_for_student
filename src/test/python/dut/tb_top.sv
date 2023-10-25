@@ -23,8 +23,8 @@ module tb_top(
 
 
     Top top(
-        .clock(clock),
-        .reset(reset),
+        .io_clock(clock),
+        .io_rst_n(reset),
         .io_uart_txd(txd),
         .io_uart_rxd(rxd)
     );

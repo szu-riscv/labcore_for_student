@@ -8,9 +8,11 @@ def main():
     parser.add_argument('--file', '-f', dest="file", type=str, help='input verilog file')
     parser.add_argument('--output', '-o', dest="out_dir", type=str, help='output directory')
     parser.add_argument("--output_count_prefix", '-p', dest="prefix", action="store_true", help="enable output file prefix with current module count")
+    parser.add_argument('--verbose', '-v', dest="verbose", action='store_true', help='verbose')
 
     args = parser.parse_args()
     prefix = args.prefix
+    verbose = args.verbose or False
     assert args.file != None
     assert args.out_dir != None
     
@@ -33,12 +35,12 @@ def main():
         module_count = 0
         line_num = 1
         for line in f:
-            if(line.count('module') != 0 and find_module == False):
+            if re.search(r"^module\s", line) and not find_module:
                 find_module = True
                 module_name = re.split(r'[;,\s(]\s*',line)[1]
                 module_count = module_count + 1
                 strr = '['+str(module_count)+'] find module => '+module_name + ' in line ' + str(line_num)
-                print(strr)
+                verbose and print(strr)
                 print(strr, file=lf)
                 if prefix:
                     file_name = out_dir + '/' + str(module_count) + '_' + module_name + '.v'
@@ -46,24 +48,24 @@ def main():
                     file_name = out_dir + '/' + module_name + '.v'
                 wf = open(file_name,'wt')
             
-            if(line.count('endmodule') != 0):
+            if re.search(r"^endmodule\s", line):
                 find_endmodule = True
 
-            if(find_module == True):
+            if find_module == True:
                 print(line,end='',file=wf)
                 temp_line = re.split(r'[;,\s]\s*',line)
                 if(temp_line.count('(') == 1 and temp_line.count(')') == 0):
                     # print(temp_line)
                     # strr = '\tfind submodule => ('+temp_line[1] +')\t('+ temp_line[2] +') in line ['+str(line_num)+']'
                     strr = '\tfind submodule => module_name:( %-*s)  inst_name:( %-*s) in line [ %-*s ]'%(20,temp_line[1],20,temp_line[2],6,str(line_num))
-                    print(strr)
+                    verbose and print(strr)
                     print(strr, file=lf)
                 
-            if(find_endmodule == True):
+            if find_endmodule == True:
                 find_module = False
                 find_endmodule = False
                 strr = module_name+' done!' + ' in line ' + str(line_num) + '\n'
-                print(strr)
+                verbose and print(strr)
                 print(strr,file=lf)
                 try:
                     wf.close()
