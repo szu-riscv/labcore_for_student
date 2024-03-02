@@ -30,7 +30,8 @@ emu: $(SIM_TOP_V)
 	$(MAKE) -C ./difftest emu SIM_TOP=$(SIM_TOP) DESIGN_DIR=$(NOOP_HOME) EMU_TRACE=1
 
 emu-run:
-	echo "NOOP_HOME is $(NOOP_HOME)"
+	@echo "NOOP_HOME is $(NOOP_HOME)"
+	@echo "SPIKE_HOME is $(SPIKE_HOME)"
 	$(MAKE) -C ./difftest emu-run SIM_TOP=$(SIM_TOP) DESIGN_DIR=$(NOOP_HOME) EMU_TRACE=0
 
 emu-clean:
