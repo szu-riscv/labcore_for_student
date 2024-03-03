@@ -21,6 +21,7 @@ class SimTop extends Module {
         val logCtrl  = new LogCtrlIO
         val perfInfo = new PerfInfoIO
         val uart     = new UARTIO
+        val startWork = Output(Bool())
     })
 
     require(FPGAPlatform == false, "SimTop is not prepare for FPGA implementation")
@@ -28,7 +29,7 @@ class SimTop extends Module {
 
     val soc = Module(new SoC())
     io.uart <> soc.io.uart.get
-
+    io.startWork := soc.io.startWork
 }
 
 object GenVerilog extends App {

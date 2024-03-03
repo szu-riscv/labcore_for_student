@@ -25,16 +25,14 @@ async def main(dut):
     tb = TestBench(dut)
     
     # cocotb.start_soon(tb._clock.start()) # Start the clock
-    
-    reset_thread = cocotb.start_soon(dut_reset(dut, 500))
+    # reset_thread = cocotb.start_soon(dut_reset(dut, 500))
     
     posedge = RisingEdge(dut.clock)
-    await posedge
     
-    await Timer(100, 'ns')
-    tb.log.info("start reset!")
-    await reset_thread
-    tb.log.info("reset done!")
+    dut.reset = 1
+    for i in range(10):
+        await posedge
+    dut.reset = 0
     await posedge
     
     assert dut.reset.value == 0, f"reset failed: dut.reset.value == {dut.reset.value} =/= 0"
@@ -47,8 +45,16 @@ async def main(dut):
     await tb.source.write([0xA0, 0xB0, 0xC0, 0xD0, 0xE0, 0xF0, 0x00, 0x01]) # Init data 1
     await tb.source.write([0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF, 0xFD, 0x02]) # Init data 2
     await tb.source.wait()
-    
-    await Timer(1, units='us')
+        
+    MILLIONS = 10000
+    for i in range(10 * MILLIONS):
+        # cycles = dut.cycles.value.integer
+        # try:
+        #     v = dut.top.io_startWork.value.integer
+        #     print(f"[{cycles}] {i} startWork is {v}")
+        # except:
+        #     print("error")
+        await posedge
 
 
 @cocotb.test()

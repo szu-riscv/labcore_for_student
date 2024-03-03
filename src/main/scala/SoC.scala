@@ -13,6 +13,7 @@ import chisel3.util.Arbiter
 class SoC extends Module {
     val io = IO(new Bundle() {
         val uart = if (FPGAPlatform) Some(new impl.device.UartPhyIO) else Some(new difftest.UARTIO)
+        val uartTxData = if (FPGAPlatform && DiffTest) Some(ValidIO(UInt(8.W))) else None
         val startWork = Output(Bool())
     })
 
@@ -50,6 +51,10 @@ class SoC extends Module {
         
 
         io.uart.get <> uart.phyIO
+
+        if (DiffTest) {
+            io.uartTxData.get := uart.uartTxData.get 
+        }
     } else {
         val xbar = Module(new CpuLinkCrossBar1toN(deviceAddrSpace))
         val uart = Module(new sim.device.UART())

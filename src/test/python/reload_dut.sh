@@ -11,6 +11,7 @@ fi
 cd $curr_dir
 
 cp $top_dir/build/$top_v .
+cp $top_dir/build/Difftest*.v dut/rtl/
 python3 $curr_dir/scripts/extract_verilog_module.py -f ./$top_v -o ./Top_out
 
 mkdir -p dut/rtl

@@ -25,7 +25,9 @@ class Top extends RawModule {
         val clock = Input(Clock())
         val rst_n = Input(Bool())
         val uart = new UartPhyIO
+        val startWork = Output(Bool())
         val statusLED = Output(Bool())
+        val uartTxData = if(FPGAPlatform && DiffTest) Some(ValidIO(UInt(8.W))) else None
     })
 
     require(FPGAPlatform == true, "Top is prepare for FPGA implementation not for simulation")
@@ -33,6 +35,7 @@ class Top extends RawModule {
     val soc = withClockAndReset(io.clock, !io.rst_n) { Module(new SoC()) }
     val startWork = soc.io.startWork
     io.uart <> soc.io.uart.get
+    io.startWork := soc.io.startWork
     
     withClockAndReset(io.clock, ~io.rst_n) {
         // Status LED
@@ -52,6 +55,9 @@ class Top extends RawModule {
             }
         }
 
+        if (FPGAPlatform && DiffTest) {
+            io.uartTxData.get := soc.io.uartTxData.get
+        }
     }
 }
 

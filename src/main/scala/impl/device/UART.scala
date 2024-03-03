@@ -190,6 +190,11 @@ class UART() extends BaseDevice {
     val phyIO = IO(new UartPhyIO)
     val fifoEnable = IO(Input(Bool()))
     val uartRxData = IO(ValidIO(UInt(8.W)))
+    val uartTxData = if(DiffTest) {
+                        Some(IO(ValidIO(UInt(8.W))))
+                    } else {
+                        None
+                    }
 
     // TODO:
     phyIO <> DontCare
@@ -217,10 +222,16 @@ class UART() extends BaseDevice {
     io.in.dmem.resp.bits.data := rxfifo.io.deq.bits
     rxfifo.io.deq.ready := io.in.dmem.resp.ready
     
-
-    txfifo.io.enq.valid := wen && waddr(3, 0) === 4.U
-    txfifo.io.enq.bits := wdata(7, 0)
+    val hasTxData = wen && waddr(3, 0) === 4.U
+    val txData = wdata(7, 0)
+    txfifo.io.enq.valid := hasTxData
+    txfifo.io.enq.bits := txData
     io.in.dmem.req.ready := txfifo.io.enq.ready
+
+    if (DiffTest) {
+        uartTxData.get.valid := hasTxData
+        uartTxData.get.bits := txData
+    }
 
     uartTx.io.channel <> txfifo.io.deq
 

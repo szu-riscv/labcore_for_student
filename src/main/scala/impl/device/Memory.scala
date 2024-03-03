@@ -8,42 +8,34 @@ import impl._
 import utils._
 import sim.device._
 
-// This Module is represent for a memory IP core of your FPGA platform(e.g. xilinx)
-class RealMemory(memByte: Long, beatBytes: Int) extends BlackBox {
-    val cfg   = implConfig
-    val io = IO(new Bundle{
-        val clka  = Input(Clock())
-        val wea   = Input(Bool())
-        val addra = Input(UInt(cfg.memAddrWidth.W))
-        val dina  = Input(UInt(cfg.memDataWidth.W))
-        val douta = Output(UInt(cfg.memDataWidth.W))
+trait HasRealMemoryIO {
+    val io: RealMemoryIO
+}
 
-        val clkb  = Input(Clock())
-        val web   = Input(Bool())
-        val addrb = Input(UInt(cfg.memAddrWidth.W))
-        val dinb  = Input(UInt(cfg.memDataWidth.W))
-        val doutb = Output(UInt(cfg.memDataWidth.W))
-    })
+class RealMemoryIO(val cfg: ImplementationConfig) extends Bundle {
+    val clka  = Input(Clock())
+    val wea   = Input(Bool())
+    val addra = Input(UInt(cfg.memAddrWidth.W))
+    val dina  = Input(UInt(cfg.memDataWidth.W))
+    val douta = Output(UInt(cfg.memDataWidth.W))
+
+    val clkb  = Input(Clock())
+    val web   = Input(Bool())
+    val addrb = Input(UInt(cfg.memAddrWidth.W))
+    val dinb  = Input(UInt(cfg.memDataWidth.W))
+    val doutb = Output(UInt(cfg.memDataWidth.W))
+}
+
+// This Module is represent for a memory IP core of your FPGA platform(e.g. xilinx)
+class RealMemory(memByte: Long, beatBytes: Int) extends BlackBox with HasRealMemoryIO {
+    val cfg   = implConfig
+    override val io = IO(new RealMemoryIO(cfg))
 }
 
 // Only for simulation
-class RealMemory_1(memByte: Long, beatBytes: Int) extends Module { 
+class RealMemory_1(memByte: Long, beatBytes: Int) extends Module with HasRealMemoryIO { 
     val cfg   = implConfig
-    val io = IO(new Bundle{
-        // Port A for DMem (rw)
-        val clka  = Input(Clock())
-        val wea   = Input(Bool())
-        val addra = Input(UInt(cfg.memAddrWidth.W))
-        val dina  = Input(UInt(cfg.memDataWidth.W))
-        val douta = Output(UInt(cfg.memDataWidth.W))
-
-        // Port B for IMem (r)
-        val clkb  = Input(Clock())
-        val web   = Input(Bool())
-        val addrb = Input(UInt(cfg.memAddrWidth.W))
-        val dinb  = Input(UInt(cfg.memDataWidth.W))
-        val doutb = Output(UInt(cfg.memDataWidth.W))
-    })
+    override val io = IO(new RealMemoryIO(cfg))
 
     val mem = RegInit(VecInit(Seq.fill((memByte / beatBytes).toInt)(0.U((beatBytes * 8).W))))
 
@@ -74,8 +66,12 @@ class MainMemory(
 
     val rIdx_1 = index(raddr2)
 
-    // val mems = (0 until split).map { _ => Module(new RealMemory_1(1024, beatBytes)) }
-    val mems = (0 until split).map { _ => Module(new RealMemory(1024, beatBytes)) }
+    
+    val mems = if (FPGAPlatform && DiffTest) {
+                    (0 until split).map { _ => Module(new RealMemory_1(1024, beatBytes)) }
+                } else {
+                    (0 until split).map { _ => Module(new RealMemory(1024, beatBytes)) }
+                }
     mems.zipWithIndex map { case (mem, i) =>
         mem.io.clka  := clock
         mem.io.clkb  := clock
