@@ -14,7 +14,7 @@ object Config {
     val ResetPC        = "h8000_0000"
 
     val DiffTest: Boolean     = true // Simulation Enable
-    val FPGAPlatform: Boolean = true
+    val FPGAPlatform: Boolean = false 
     val EnableDebug: Boolean  = false
     
     // AddrSpace: (begin, size)
